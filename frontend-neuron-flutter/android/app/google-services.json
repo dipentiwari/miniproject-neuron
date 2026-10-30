@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "841344922286",
+    "project_id": "neuron-3ef0a",
+    "storage_bucket": "neuron-3ef0a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841344922286:android:db6b595fddcf01077db33f",
+        "android_client_info": {
+          "package_name": "com.example.mini_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyy21N9pHd11--ZPBaOUtNikc3Mfc6yFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841344922286:android:a7c39071e416220e7db33f",
+        "android_client_info": {
+          "package_name": "com.neuron.neuron_dashboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyy21N9pHd11--ZPBaOUtNikc3Mfc6yFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

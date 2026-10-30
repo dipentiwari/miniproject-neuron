@@ -1,170 +1,289 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_theme.dart';
+import '../core/theme/responsive.dart';
+import '../models/connection_model.dart';
+import '../providers/connections_provider.dart';
+import '../widgets/neuron_card.dart';
+import '../widgets/app_dialogs.dart';
 
 class ConnectionsScreen extends StatelessWidget {
-  final bool isDarkMode;
-
-  const ConnectionsScreen({super.key, required this.isDarkMode});
-
-  static final List<Map<String, dynamic>> integrations = [
-    {
-      'name': 'Google Drive',
-      'category': 'Cloud Storage',
-      'icon': Icons.drive_folder_upload,
-      'color': Color(0xFF34A853),
-      'connected': true,
-      'count': '1,420 files synced',
-    },
-    {
-      'name': 'Gmail',
-      'category': 'Email & Communications',
-      'icon': Icons.mail,
-      'color': Color(0xFFEA4335),
-      'connected': true,
-      'count': 'Daily digest active',
-    },
-    {
-      'name': 'GitHub',
-      'category': 'Developer Repositories',
-      'icon': Icons.code,
-      'color': Color(0xFF6B7280),
-      'connected': true,
-      'count': '18 repos connected',
-    },
-    {
-      'name': 'Notion',
-      'category': 'Notes & Workspaces',
-      'icon': Icons.note_alt,
-      'color': Color(0xFF3B82F6),
-      'connected': true,
-      'count': '3 workspaces',
-    },
-    {
-      'name': 'Slack',
-      'category': 'Team Chat',
-      'icon': Icons.chat,
-      'color': Color(0xFFE01E5A),
-      'connected': false,
-      'count': 'Not connected',
-    },
-    {
-      'name': 'Spotify',
-      'category': 'Focus Audio',
-      'icon': Icons.headphones,
-      'color': Color(0xFF1DB954),
-      'connected': false,
-      'count': 'Not connected',
-    },
-  ];
+  const ConnectionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = isDarkMode ? const Color(0xFF22272E) : const Color(0xFFE5E7EB);
+    final connProv = context.watch<ConnectionsProvider>();
+    final connections = connProv.connections;
+    final isDesktop = Responsive.isDesktop(context);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Connected Integrations',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Connect apps to empower Neuron to synthesize your knowledge and context.',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 24),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: integrations.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.7,
-            ),
-            itemBuilder: (context, index) {
-              final item = integrations[index];
-              final isConnected = item['connected'] as bool;
-
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF161B22) : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: borderColor),
+    return Scaffold(
+      appBar: AppBar(
+        leading: !isDesktop
+            ? Builder(
+                builder: (ctx) => IconButton(
+                  icon: const Icon(Icons.menu, size: 24),
+                  tooltip: 'Open Menu',
+                  onPressed: () => Scaffold.of(ctx).openDrawer(),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: (item['color'] as Color).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 20),
+              )
+            : null,
+        title: const Text(
+          'Connected Integrations',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        actions: [
+          IconButton(
+            icon: connProv.isSyncingAll
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.sync, size: 22),
+            tooltip: 'Sync All Integrations',
+            onPressed: connProv.isSyncingAll
+                ? null
+                : () async {
+                    await connProv.syncAll();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('All active integrations synchronized successfully.'),
+                          duration: Duration(seconds: 2),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isConnected
-                                ? Colors.green.withValues(alpha: 0.15)
-                                : (isDarkMode ? const Color(0xFF22272E) : const Color(0xFFF3F4F6)),
-                            borderRadius: BorderRadius.circular(12),
+                      );
+                    }
+                  },
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        children: [
+          // Banner explaining integration status
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.security, size: 20, color: AppColors.primaryLight),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Zero-Compromise Integration Security',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'NEURON connects via standard OAuth 2.0. If live credentials are not yet provisioned in Google Cloud or GitHub, you can test with fully functional Demo Mode.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.4,
+                          color: AppTheme.secondaryText(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Cards for all 7 integrations
+          ...connections.map((conn) {
+            return _buildIntegrationCard(context, conn, connProv);
+          }),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntegrationCard(
+    BuildContext context,
+    ConnectionModel conn,
+    ConnectionsProvider provider,
+  ) {
+    String statusLabel;
+    Color statusColor;
+
+    switch (conn.status) {
+      case ConnectionStatus.connectedLive:
+        statusLabel = 'Connected (Live OAuth)';
+        statusColor = AppColors.success;
+        break;
+      case ConnectionStatus.connectedDemo:
+        statusLabel = 'Connected (Demo Mode)';
+        statusColor = AppColors.primaryLight;
+        break;
+      case ConnectionStatus.setupRequired:
+        statusLabel = 'Setup Required';
+        statusColor = AppColors.warning;
+        break;
+      case ConnectionStatus.disconnected:
+        statusLabel = 'Disconnected';
+        statusColor = Colors.grey;
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: NeuronCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: conn.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(conn.icon, size: 22, color: conn.color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        conn.name,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: statusColor,
+                            ),
                           ),
-                          child: Text(
-                            isConnected ? 'Connected' : 'Connect',
+                          const SizedBox(width: 6),
+                          Text(
+                            statusLabel,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: isConnected
-                                  ? Colors.greenAccent[400]
-                                  : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                              color: statusColor,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline, size: 20),
+                  tooltip: 'View OAuth Details',
+                  onPressed: () => AppDialogs.showConnectionSetupDialog(context, conn),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              conn.description,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: AppTheme.secondaryText(context),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (conn.isConnected && conn.accountDetail.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardElevated(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.border(context)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_circle_outlined, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        conn.accountDetail,
+                        style: const TextStyle(fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['name'] as String,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          item['count'] as String,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Synced: ${conn.lastSyncTime}',
+                      style: TextStyle(fontSize: 10, color: AppTheme.secondaryText(context)),
                     ),
                   ],
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (conn.isConnected) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => provider.syncService(conn.id),
+                    icon: const Icon(Icons.refresh, size: 14),
+                    label: const Text('Sync', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      AppDialogs.showConfirmDialog(
+                        context,
+                        title: 'Disconnect ${conn.name}?',
+                        message:
+                            'Are you sure you want to disconnect ${conn.name}? Cached items will remain but live synchronization will stop.',
+                        confirmLabel: 'Disconnect',
+                        isDestructive: true,
+                        onConfirm: () => provider.disconnect(conn.id),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                    ),
+                    child: const Text('Disconnect', style: TextStyle(fontSize: 12)),
+                  ),
+                ] else ...[
+                  ElevatedButton.icon(
+                    onPressed: () => AppDialogs.showConnectionSetupDialog(context, conn),
+                    icon: const Icon(Icons.link, size: 16),
+                    label: const Text('Connect', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      minimumSize: Size.zero,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
